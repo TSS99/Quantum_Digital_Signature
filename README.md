@@ -157,3 +157,25 @@ This installs:
 | `pylatexenc` | Lets Qiskit draw circuit diagrams |
 
 ---
+
+### Step 4 — Register the Jupyter Kernel
+
+This tells Jupyter to use the packages we just installed:
+
+```bash
+python -m ipykernel install --user --name QDS-env --display-name "QDS-env"
+```
+
+---
+
+### Step 5 — Open the Notebook
+
+```bash
+jupyter notebook quantum_digital_signature.ipynb
+```
+
+Your browser will open. Make sure the kernel (top-right corner) is set to **QDS-env**.
+
+Then run all cells: **Kernel → Restart & Run All**
+
+---
