@@ -195,3 +195,19 @@ The notebook walks through the full protocol step by step:
 9. **Security sweep** — graph showing forgery probability drops exponentially with M
 
 ---
+
+## Security Parameters Explained
+
+| Parameter | Symbol | What it means |
+|-----------|--------|---------------|
+| Key length | `L` | Bits in each private key. Larger = more secure |
+| Copies per bit | `M` | How many key pairs per message bit. Larger = harder to forge |
+| Qubits per state | `n` | Size of each quantum public key |
+| Overlap bound | `δ` | How different two quantum states must be. Smaller = more secure |
+
+**Security rule of thumb:** `L - n×M >> 1`
+
+In the notebook demo: `L=6, n=1, M=5` → `L - n×M = 1` (just enough for demonstration).
+In a real deployment, use `L=32` or larger.
+
+---
