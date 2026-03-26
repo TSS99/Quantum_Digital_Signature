@@ -79,3 +79,18 @@ P(ancilla = |0⟩) = (1 + |⟨a|b⟩|²) / 2
 - Totally different states → P = 0.5
 
 ---
+
+## Project Structure
+
+```
+Quantum_Digital_Signature/
+│
+├── quantum_digital_signature.ipynb   ← Main notebook (start here!)
+│
+├── example_circuit.png               ← Diagram of one key-generation circuit
+├── swap_test_comparison.png          ← Bar chart: SWAP test results
+├── verification_decision.png         ← Decision zones for signature verdict
+└── forgery_analysis.png              ← Security graph: P(forgery) vs M
+```
+
+---
