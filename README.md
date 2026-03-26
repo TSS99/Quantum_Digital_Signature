@@ -211,3 +211,37 @@ In the notebook demo: `L=6, n=1, M=5` → `L - n×M = 1` (just enough for demons
 In a real deployment, use `L=32` or larger.
 
 ---
+
+## Running the Notebook from the Command Line
+
+If you prefer not to open a browser:
+
+```bash
+venv/Scripts/python.exe -m jupyter nbconvert \
+    --to notebook \
+    --execute \
+    --ExecutePreprocessor.timeout=300 \
+    --ExecutePreprocessor.kernel_name=qds-env \
+    --output output.ipynb \
+    quantum_digital_signature.ipynb
+```
+
+---
+
+## Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| `ModuleNotFoundError: No module named 'qiskit'` | Run `pip install qiskit` with venv active |
+| Kernel not showing as "QDS-env" | Re-run the `ipykernel install` command in Step 4 |
+| `MissingOptionalLibraryError: pylatexenc` | Run `pip install pylatexenc` |
+| Plots not showing | Make sure the first cell ran successfully (`%matplotlib inline`) |
+| Notebook runs slowly | Reduce `M` from `5` to `2` or `3` in Cell 6 |
+
+---
+
+## References
+
+1. Gottesman, D. & Chuang, I. L. (2001). *Quantum Digital Signatures*. [arXiv:quant-ph/0105032](https://arxiv.org/abs/quant-ph/0105032)
+2. Nielsen, M. A. & Chuang, I. L. (2010). *Quantum Computation and Quantum Information*. Cambridge University Press.
+3. Qiskit Documentation: [https://docs.quantum.ibm.com](https://docs.quantum.ibm.com)
