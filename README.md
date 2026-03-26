@@ -136,3 +136,24 @@ source venv/bin/activate
 You'll see `(venv)` appear in your terminal — that means it's active.
 
 ---
+
+### Step 3 — Install Required Packages
+
+```bash
+pip install qiskit qiskit-aer numpy scipy matplotlib ipykernel jupyter pylatexenc
+```
+
+This installs:
+
+| Package | What it does |
+|---------|-------------|
+| `qiskit` | IBM's quantum computing framework |
+| `qiskit-aer` | Fast quantum circuit simulator (no real quantum hardware needed) |
+| `numpy` | Math and array operations |
+| `scipy` | Scientific computing |
+| `matplotlib` | Plotting graphs |
+| `ipykernel` | Lets Jupyter use our virtual environment |
+| `jupyter` | Run the notebook |
+| `pylatexenc` | Lets Qiskit draw circuit diagrams |
+
+---
