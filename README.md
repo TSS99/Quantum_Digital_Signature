@@ -179,3 +179,19 @@ Your browser will open. Make sure the kernel (top-right corner) is set to **QDS-
 Then run all cells: **Kernel → Restart & Run All**
 
 ---
+
+## What You'll See in the Notebook
+
+The notebook walks through the full protocol step by step:
+
+1. **Library imports** — loads Qiskit, NumPy, Matplotlib
+2. **The `QuantumDigitalSignature` class** — all the logic lives here
+3. **Message input** — `"101100101"` as a test message
+4. **Key generation** — private keys + quantum public-key circuits
+5. **Circuit diagram** — visual of one `RY` gate circuit
+6. **SWAP test** — bar chart comparing identical vs different states
+7. **Signature generation** — Alice reveals private keys
+8. **Verification** — check revealed keys, count failures, print verdict
+9. **Security sweep** — graph showing forgery probability drops exponentially with M
+
+---
