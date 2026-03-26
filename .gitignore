@@ -1,0 +1,23 @@
+# Virtual environment
+venv/
+
+# Claude Code internal files
+.claude/
+
+# Notebook generator script (dev tool, not part of the project)
+generate_notebook.py
+
+# Executed notebook copy (regenerated on each run)
+quantum_digital_signature_executed.ipynb
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
