@@ -105,3 +105,34 @@ Quantum_Digital_Signature/
 You do **not** need a quantum computer — everything runs on a simulator.
 
 ---
+
+### Step 1 — Clone or Download
+
+```bash
+git clone <your-repo-url>
+cd Quantum_Digital_Signature
+```
+
+Or just download and unzip the folder.
+
+---
+
+### Step 2 — Create a Virtual Environment
+
+A virtual environment keeps the project's packages separate from your system Python.
+
+```bash
+# Create the environment
+python -m venv venv
+
+# Activate it
+# On Windows:
+venv\Scripts\activate
+
+# On Mac/Linux:
+source venv/bin/activate
+```
+
+You'll see `(venv)` appear in your terminal — that means it's active.
+
+---
