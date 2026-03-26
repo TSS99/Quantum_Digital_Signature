@@ -94,3 +94,14 @@ Quantum_Digital_Signature/
 ```
 
 ---
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.10 or higher ([download here](https://www.python.org/downloads/))
+- Git (optional, for cloning)
+
+You do **not** need a quantum computer — everything runs on a simulator.
+
+---
