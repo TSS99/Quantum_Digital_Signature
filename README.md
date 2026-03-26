@@ -15,3 +15,40 @@ This project implements a **quantum** version: security comes from the laws of q
 Even a quantum computer can't break this scheme.
 
 ---
+
+## How the Protocol Works (Simple Version)
+
+```
+Alice                              Bob / Charlie
+  |                                      |
+  |-- Key Generation ------------------>|
+  |   For each message bit:             |
+  |   - Creates private keys k0, k1     |
+  |   - Creates quantum states |f_k0>,  |
+  |     |f_k1> from each key            |
+  |   - Sends quantum states to Bob --->|
+  |                                     |
+  |                                     |-- Swap Test (verification)
+  |                                     |   Checks quantum states are
+  |                                     |   consistent copies
+  |                                     |
+  |-- Signing ------------------------->|
+  |   Reveals private key for each bit  |
+  |   (keeps the other key secret)      |
+  |                                     |
+  |                                  Bob verifies:
+  |                                  - Reconstructs quantum state
+  |                                    from revealed key
+  |                                  - Counts failures (s_j)
+  |                                  - Accepts or rejects
+```
+
+**Three possible verdicts:**
+
+| Result | Meaning |
+|--------|---------|
+| **1-ACC** | Valid signature — Bob can pass it to Charlie |
+| **0-ACC** | Valid signature — but Bob must keep it himself |
+| **REJ**   | Signature is fake — reject it |
+
+---
