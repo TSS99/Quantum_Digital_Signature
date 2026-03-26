@@ -52,3 +52,30 @@ Alice                              Bob / Charlie
 | **REJ**   | Signature is fake — reject it |
 
 ---
+
+## The Math (Bird's-Eye View)
+
+Each private key `k` (a string of bits) is mapped to a quantum state using a rotation gate:
+
+```
+|f_k⟩ = cos(j·θ)|0⟩ + sin(j·θ)|1⟩
+```
+
+where `j = int(k, 2)` and `θ = π / 2^L`.
+
+This is done with a single `RY` gate in Qiskit:
+
+```
+RY(2·j·θ)|0⟩  →  cos(j·θ)|0⟩ + sin(j·θ)|1⟩
+```
+
+Checking if two quantum states match uses the **SWAP test** circuit:
+
+```
+P(ancilla = |0⟩) = (1 + |⟨a|b⟩|²) / 2
+```
+
+- Same states → P = 1.0
+- Totally different states → P = 0.5
+
+---
