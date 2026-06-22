@@ -1,0 +1,165 @@
+{
+  "_comment": "Golden input/output reference cases for QuantumDigitalSignatureWithChannelNoise. These were captured from quantum_digital_signature_channel_noise.py with the fixed seeds shown. They act as regression references: if the code is changed in the future, run run_reference_test_cases.py to confirm the same inputs still produce the same outputs. Only the deterministic, stable result fields are recorded (not the full raw_counts_summary).",
+  "module": "quantum_digital_signature_channel_noise",
+  "class": "QuantumDigitalSignatureWithChannelNoise",
+  "float_tolerance": 1e-06,
+  "cases": [
+    {
+      "name": "noiseless_honest_accept",
+      "description": "Honest signer, no channel noise. Every check passes; signature accepted.",
+      "method": "run",
+      "input": {
+        "message_bits": "101100",
+        "n_qubits": 4,
+        "L": 25,
+        "M": 5,
+        "c1": 0.1,
+        "c2": 0.4,
+        "shots": 4096,
+        "seed": 42,
+        "noise_channel": "none",
+        "noise_probability": 0.0
+      },
+      "expected_output": {
+        "security_margin": 5,
+        "total_verifications": 30,
+        "failed_verifications": 0,
+        "failure_rate": 0.0,
+        "authentic_threshold": 3.0,
+        "reject_threshold": 12.0,
+        "verdict": "ACCEPT_AUTHENTIC"
+      }
+    },
+    {
+      "name": "depolarizing_low_accept",
+      "description": "Honest signer through a weak depolarizing channel (p=0.05). Still accepted.",
+      "method": "run",
+      "input": {
+        "message_bits": "101100",
+        "n_qubits": 4,
+        "L": 25,
+        "M": 5,
+        "c1": 0.1,
+        "c2": 0.4,
+        "shots": 4096,
+        "seed": 42,
+        "noise_channel": "depolarizing",
+        "noise_probability": 0.05
+      },
+      "expected_output": {
+        "security_margin": 5,
+        "total_verifications": 30,
+        "failed_verifications": 0,
+        "failure_rate": 0.0,
+        "authentic_threshold": 3.0,
+        "reject_threshold": 12.0,
+        "verdict": "ACCEPT_AUTHENTIC"
+      }
+    },
+    {
+      "name": "bit_flip_accept",
+      "description": "Honest signer through a weak bit-flip channel (p=0.05). Borderline but accepted.",
+      "method": "run",
+      "input": {
+        "message_bits": "101100",
+        "n_qubits": 4,
+        "L": 25,
+        "M": 5,
+        "c1": 0.1,
+        "c2": 0.4,
+        "shots": 4096,
+        "seed": 42,
+        "noise_channel": "bit_flip",
+        "noise_probability": 0.05
+      },
+      "expected_output": {
+        "security_margin": 5,
+        "total_verifications": 30,
+        "failed_verifications": 0,
+        "failure_rate": 0.0,
+        "authentic_threshold": 3.0,
+        "reject_threshold": 12.0,
+        "verdict": "ACCEPT_AUTHENTIC"
+      }
+    },
+    {
+      "name": "forgery_reject",
+      "description": "Forger who guesses random keys (no noise). Every check fails; rejected.",
+      "method": "run_forgery_attempt",
+      "input": {
+        "message_bits": "101100",
+        "n_qubits": 4,
+        "L": 25,
+        "M": 5,
+        "c1": 0.1,
+        "c2": 0.4,
+        "shots": 4096,
+        "seed": 42,
+        "noise_channel": "none",
+        "noise_probability": 0.0
+      },
+      "expected_output": {
+        "security_margin": 5,
+        "total_verifications": 30,
+        "failed_verifications": 30,
+        "failure_rate": 1.0,
+        "authentic_threshold": 3.0,
+        "reject_threshold": 12.0,
+        "verdict": "REJECT_FORGED"
+      }
+    },
+    {
+      "name": "single_bit_accept",
+      "description": "Smaller configuration: 1-bit message, 2 qubits, L=10, M=3. Honest, accepted.",
+      "method": "run",
+      "input": {
+        "message_bits": "1",
+        "n_qubits": 2,
+        "L": 10,
+        "M": 3,
+        "c1": 0.1,
+        "c2": 0.4,
+        "shots": 4096,
+        "seed": 42,
+        "noise_channel": "none",
+        "noise_probability": 0.0
+      },
+      "expected_output": {
+        "security_margin": 4,
+        "total_verifications": 3,
+        "failed_verifications": 0,
+        "failure_rate": 0.0,
+        "authentic_threshold": 0.3,
+        "reject_threshold": 1.2,
+        "verdict": "ACCEPT_AUTHENTIC"
+      }
+    },
+    {
+      "name": "high_depolarizing_reject",
+      "description": "Honest signer but a strong depolarizing channel (p=0.3) corrupts the states enough to be rejected.",
+      "method": "run",
+      "input": {
+        "message_bits": "101100",
+        "n_qubits": 4,
+        "L": 25,
+        "M": 5,
+        "c1": 0.1,
+        "c2": 0.4,
+        "shots": 4096,
+        "seed": 42,
+        "noise_channel": "depolarizing",
+        "noise_probability": 0.3
+      },
+      "expected_output": {
+        "security_margin": 5,
+        "total_verifications": 30,
+        "failed_verifications": 30,
+        "failure_rate": 1.0,
+        "authentic_threshold": 3.0,
+        "reject_threshold": 12.0,
+        "verdict": "REJECT_FORGED"
+      }
+    }
+  ]
+}
+
