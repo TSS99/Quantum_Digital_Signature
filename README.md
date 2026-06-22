@@ -251,3 +251,4 @@ venv/Scripts/python.exe -m jupyter nbconvert \
 ## Repository Update History
 
 - Update 1: Documented repository structure and verified setup.
+- Update 2: Verified QDS execution with noise parameters.
