@@ -245,3 +245,9 @@ venv/Scripts/python.exe -m jupyter nbconvert \
 1. Gottesman, D. & Chuang, I. L. (2001). *Quantum Digital Signatures*. [arXiv:quant-ph/0105032](https://arxiv.org/abs/quant-ph/0105032)
 2. Nielsen, M. A. & Chuang, I. L. (2010). *Quantum Computation and Quantum Information*. Cambridge University Press.
 3. Qiskit Documentation: [https://docs.quantum.ibm.com](https://docs.quantum.ibm.com)
+
+---
+
+## Repository Update History
+
+- Update 1: Documented repository structure and verified setup.
