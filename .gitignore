@@ -7,8 +7,13 @@ venv/
 # Notebook generator script (dev tool, not part of the project)
 generate_notebook.py
 
-# Executed notebook copy (regenerated on each run)
+# Local notebooks and validation scripts
+quantum_digital_signature_2.ipynb
 quantum_digital_signature_executed.ipynb
+Quantum_Digital_Signature_With_Channel_Noise_Class_Based.ipynb
+quantum_digital_signature.ipynb
+run_reference_test_cases.py
+test_quantum_digital_signature.py
 
 # Python cache
 __pycache__/
