@@ -33,7 +33,7 @@ def run_case(case):
     """Run one case and return the subset of result fields we compare."""
     qds = QDS(verbose=False, **case["input"])
     method = getattr(qds, case["method"])
-    result = method()
+    result = json.loads(method())
     return {field: result[field] for field in case["expected_output"]}
 
 

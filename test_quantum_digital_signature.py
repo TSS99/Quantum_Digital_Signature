@@ -14,12 +14,18 @@ quantum result is not the point of the test.
 import unittest
 import warnings
 import inspect
+import json
+from pathlib import Path
 
 import numpy as np
 
 from quantum_digital_signature_channel_noise import (
     QuantumDigitalSignatureWithChannelNoise as QDS,
 )
+
+
+def as_json(payload):
+    return json.loads(payload)
 
 
 # --------------------------------------------------------------------------- #
@@ -42,16 +48,39 @@ class TestHonestWorkflow(unittest.TestCase):
 
     def test_noiseless_honest_run_accepts(self):
         qds = QDS(message_bits="101100", noise_channel="none", verbose=False)
-        result = qds.run()
+        result = as_json(qds.run())
         self.assertEqual(result["verdict"], "ACCEPT_AUTHENTIC")
         self.assertEqual(result["failed_verifications"], 0)
         self.assertEqual(result["total_verifications"], 6 * 5)
         self.assertAlmostEqual(result["failure_rate"], 0.0)
+        image_path = Path(result["generated_files"]["verification_decision"])
+        self.assertTrue(image_path.exists())
+        self.assertGreater(image_path.stat().st_size, 0)
+        visualization = result["decision_visualization"]
+        self.assertEqual(
+            visualization["zones"]["green"]["range"],
+            [0, result["authentic_threshold"]],
+        )
+        self.assertEqual(
+            visualization["zones"]["yellow"]["range"],
+            [result["authentic_threshold"], result["reject_threshold"]],
+        )
+        self.assertEqual(
+            visualization["zones"]["red"]["range"],
+            [result["reject_threshold"], result["total_verifications"]],
+        )
+        self.assertEqual(visualization["zones"]["green"]["colour"], "#e6f4ea")
+        self.assertEqual(visualization["zones"]["yellow"]["colour"], "#fef7e0")
+        self.assertEqual(visualization["zones"]["red"]["colour"], "#fce8e6")
+        observed_point = visualization["points"][0]
+        self.assertEqual(observed_point["location"][0], result["failed_verifications"])
+        self.assertEqual(observed_point["colour"], "#2563eb")
+        self.assertEqual(observed_point["verdict"], result["verdict"])
 
     def test_noiseless_counts_are_all_zero(self):
         qds = QDS(message_bits="10", L=8, M=2, n_qubits=2, shots=512, verbose=False)
-        result = qds.run()
-        for record in result["raw_counts_summary"]:
+        qds.run()
+        for record in qds._last_result["raw_counts_summary"]:
             self.assertEqual(record["counts"], {"00": 512})
 
     def test_moderate_noise_still_accepts(self):
@@ -62,7 +91,7 @@ class TestHonestWorkflow(unittest.TestCase):
             noise_probability=0.05,
             verbose=False,
         )
-        result = qds.run()
+        result = as_json(qds.run())
         self.assertEqual(result["verdict"], "ACCEPT_AUTHENTIC")
 
 
@@ -72,7 +101,7 @@ class TestHonestWorkflow(unittest.TestCase):
 class TestForgeryPath(unittest.TestCase):
     def test_forgery_is_rejected(self):
         qds = QDS(message_bits="101100", noise_channel="none", verbose=False)
-        result = qds.run_forgery_attempt()
+        result = as_json(qds.run_forgery_attempt())
         self.assertEqual(result["verdict"], "REJECT_FORGED")
         # A random-key forger fails essentially every check.
         self.assertEqual(result["failed_verifications"], result["total_verifications"])
@@ -93,7 +122,7 @@ class TestForgeryPath(unittest.TestCase):
 class TestVerdictThresholds(unittest.TestCase):
     def test_threshold_values(self):
         qds = QDS(message_bits="1010", M=5, c1=0.1, c2=0.4, verbose=False)
-        result = qds.run()
+        result = as_json(qds.run())
         T = 4 * 5
         self.assertEqual(result["total_verifications"], T)
         self.assertAlmostEqual(result["authentic_threshold"], 0.1 * T)
@@ -179,10 +208,13 @@ class TestSecurityMargin(unittest.TestCase):
             warnings.simplefilter("error")  # turn warnings into errors
             qds = QDS(message_bits="10", n_qubits=2, L=25, M=5, verbose=False)
             self.assertEqual(qds._security_margin, 25 - 2 * 5)
+            self.assertEqual(qds._warnings, [])
 
-    def test_non_positive_margin_warns(self):
-        with self.assertWarns(UserWarning):
-            QDS(message_bits="10", n_qubits=4, L=20, M=5, verbose=False)
+    def test_non_positive_margin_is_reported_as_json_warning(self):
+        qds = QDS(message_bits="10", n_qubits=4, L=20, M=5, verbose=False)
+        self.assertEqual(len(qds._warnings), 1)
+        result = as_json(qds.run())
+        self.assertEqual(result["warnings"], qds._warnings)
 
 
 # --------------------------------------------------------------------------- #
@@ -218,13 +250,13 @@ class TestKeyEncoding(unittest.TestCase):
 class TestSwapTest(unittest.TestCase):
     def test_ideal_vs_ideal_is_near_one(self):
         qds = QDS(message_bits="10", L=8, M=2, n_qubits=2, shots=2048, verbose=False)
-        out = qds.run_swap_test_example(make_plot=False)
+        out = as_json(qds.run_swap_test_example(make_plot=False))
         p_same = out["comparisons"]["ideal_vs_ideal"]["p_ancilla_zero"]
         self.assertGreater(p_same, 0.95)
 
     def test_swap_test_keys_present(self):
         qds = QDS(message_bits="10", L=8, M=2, n_qubits=2, shots=1024, verbose=False)
-        out = qds.run_swap_test_example(make_plot=False)
+        out = as_json(qds.run_swap_test_example(make_plot=False))
         self.assertIn("ideal_vs_received", out["comparisons"])
         self.assertIn("ideal_vs_complementary", out["comparisons"])
 

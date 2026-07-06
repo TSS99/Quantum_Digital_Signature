@@ -24,13 +24,13 @@ value raises `TypeError` or `ValueError` immediately.
 | `noise_channel` | `str` | `"none"` | One of: `none`, `depolarizing`, `amplitude_damping`, `phase_damping`, `bit_flip`, `phase_flip` (case-insensitive) | Type of quantum channel applied during public-key transmission. |
 | `noise_probability` | `float` | `0.0` | `0.0 <= p <= 1.0` | Strength of the channel noise. |
 | `verification_pass_threshold` | `float` | `0.80` | `0.0 <= t <= 1.0` | A single check passes if P(all-zero) after inverse verification is `>= t`. |
-| `verbose` | `bool` | `True` | `True` / `False` | If `True`, prints the configuration and per-run summary. |
+| `verbose` | `bool` | `True` | `True` / `False` | If `True`, prints JSON configuration/result events. |
 
 ### Format notes
 - `message_bits` is a **string**, not a list. `"101100"` is valid; `[1,0,1]` is not.
 - `T = len(message_bits) * M` is the total number of verification checks.
-- `security_margin = L - n_qubits * M`. A non-positive value is allowed but
-  raises a `UserWarning` (weak parameter choice).
+- `security_margin = L - n_qubits * M`. A non-positive value is allowed and is
+  reported in the JSON `warnings` field.
 - The simulator measures into a classical register, and Qiskit's all-zero count
   key is the string `"0" * n_qubits` (e.g. `"0000"` for 4 qubits).
 
@@ -68,10 +68,11 @@ Only these instance methods are public. All other methods and stored state are
 private implementation details.
 
 ### `run()`
-No inputs. Runs the full honest workflow and returns the verdict dictionary.
+No inputs. Runs the full honest workflow and returns a JSON string.
 
 ### `run_forgery_attempt()`
-No inputs. Runs the workflow but verifies a forged (random-key) signature.
+No inputs. Runs the workflow but verifies a forged (random-key) signature and
+returns a JSON string.
 
 ### `run_swap_test_example(bit_index=0, copy_index=0, bit_value=None, make_plot=True)`
 | Argument | Type | Format |
@@ -79,7 +80,7 @@ No inputs. Runs the workflow but verifies a forged (random-key) signature.
 | `bit_index` | `int` | `0 <= bit_index < len(message_bits)` |
 | `copy_index` | `int` | `0 <= copy_index < M` |
 | `bit_value` | `int` or `None` | `0` or `1`; if `None`, uses the message bit at `bit_index` |
-| `make_plot` | `bool` | Whether to draw the bar chart |
+| `make_plot` | `bool` | Whether to include JSON bar-chart data in the returned payload |
 
 ### Private-key input (used internally by `_normalize_key`)
 A private key may be given as:

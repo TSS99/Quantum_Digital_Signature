@@ -15,10 +15,14 @@ or from the command line:
     python quantum_digital_signature_channel_noise.py
 """
 
-import warnings
+import json
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+import matplotlib
 import numpy as np
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from qiskit import QuantumCircuit, transpile
@@ -101,6 +105,7 @@ class QuantumDigitalSignatureWithChannelNoise:
         self._received_public_key_circuits: Dict[int, List[Dict[int, QuantumCircuit]]] = {}
         self._signature: Optional[Dict[str, Any]] = None
         self._last_result: Optional[Dict[str, Any]] = None
+        self._warnings: List[str] = []
 
         if self._verbose:
             self._print_configuration()
@@ -111,9 +116,12 @@ class QuantumDigitalSignatureWithChannelNoise:
                 f"L - n_qubits*M = {self._security_margin}. "
                 "Use a positive margin for a stronger Holevo-bound separation."
             )
-            warnings.warn(message, UserWarning)
+            self._warnings.append(message)
             if self._verbose:
-                print("WARNING:", message)
+                self._print_json({
+                    "event": "warning",
+                    "warning": message,
+                })
 
     # ------------------------------------------------------------------ #
     # Input validation
@@ -173,21 +181,51 @@ class QuantumDigitalSignatureWithChannelNoise:
     def _create_rng(self) -> np.random.Generator:
         return np.random.default_rng(self._seed)
 
+    def _to_json(self, payload: Dict[str, Any]) -> str:
+        return json.dumps(payload, indent=2)
+
+    def _print_json(self, payload: Dict[str, Any]) -> None:
+        print(self._to_json(payload))
+
+    def _compact_verification_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "message_bits": result["message_bits"],
+            "verdict": result["verdict"],
+            "failed_verifications": result["failed_verifications"],
+            "total_verifications": result["total_verifications"],
+            "failure_rate": result["failure_rate"],
+            "authentic_threshold": result["authentic_threshold"],
+            "reject_threshold": result["reject_threshold"],
+            "security_margin": result["security_margin"],
+            "noise_channel": result["noise_channel"],
+            "noise_probability": result["noise_probability"],
+            "warnings": result["warnings"],
+            "generated_files": result.get("generated_files", {}),
+            "decision_visualization": result.get("decision_visualization", {}),
+        }
+
+    def _configuration_payload(self) -> Dict[str, Any]:
+        return {
+            "message_bits": self._message_bits,
+            "n_qubits": self._n_qubits,
+            "L": self._L,
+            "M": self._M,
+            "c1": self._c1,
+            "c2": self._c2,
+            "shots": self._shots,
+            "seed": self._seed,
+            "noise_channel": self._noise_channel,
+            "noise_probability": self._noise_probability,
+            "verification_pass_threshold": self._verification_pass_threshold,
+            "security_margin": self._security_margin,
+            "warnings": list(self._warnings),
+        }
+
     def _print_configuration(self) -> None:
-        print("Quantum Digital Signature configuration")
-        print("-" * 48)
-        print(f"message_bits                  : {self._message_bits}")
-        print(f"n_qubits                      : {self._n_qubits}")
-        print(f"L                             : {self._L}")
-        print(f"M                             : {self._M}")
-        print(f"c1, c2                        : {self._c1}, {self._c2}")
-        print(f"shots                         : {self._shots}")
-        print(f"seed                          : {self._seed}")
-        print(f"noise_channel                 : {self._noise_channel}")
-        print(f"noise_probability             : {self._noise_probability}")
-        print(f"verification_pass_threshold   : {self._verification_pass_threshold}")
-        print(f"security_margin = L - n*M     : {self._security_margin}")
-        print()
+        self._print_json({
+            "event": "configuration",
+            "configuration": self._configuration_payload(),
+        })
 
     def _reset_protocol_state(self) -> None:
         self._rng = self._create_rng()
@@ -435,7 +473,7 @@ class QuantumDigitalSignatureWithChannelNoise:
             if not passed:
                 failed_verifications += 1
 
-            bit_index = item["bit_index"]
+            bit_index = str(item["bit_index"])
             if bit_index not in per_bit_results:
                 per_bit_results[bit_index] = {
                     "bit_value": item["bit_value"],
@@ -486,6 +524,7 @@ class QuantumDigitalSignatureWithChannelNoise:
             "noise_channel": self._noise_channel,
             "noise_probability": self._noise_probability,
             "security_margin": self._security_margin,
+            "warnings": list(self._warnings),
             "total_verifications": total_verifications,
             "failed_verifications": failed_verifications,
             "failure_rate": failure_rate,
@@ -498,21 +537,188 @@ class QuantumDigitalSignatureWithChannelNoise:
         self._last_result = verification_result
         return verification_result
 
+    def _decision_visualization_payload(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        total = int(result["total_verifications"])
+        authentic_threshold = float(result["authentic_threshold"])
+        reject_threshold = float(result["reject_threshold"])
+        failed = int(result["failed_verifications"])
+        return {
+            "zones": {
+                "green": {
+                    "label": "ACCEPT_AUTHENTIC",
+                    "range": [0, authentic_threshold],
+                    "colour": "#e6f4ea",
+                },
+                "yellow": {
+                    "label": "INCONCLUSIVE",
+                    "range": [authentic_threshold, reject_threshold],
+                    "colour": "#fef7e0",
+                },
+                "red": {
+                    "label": "REJECT_FORGED",
+                    "range": [reject_threshold, total],
+                    "colour": "#fce8e6",
+                },
+            },
+            "thresholds": [
+                {
+                    "label": "c1*T",
+                    "location": authentic_threshold,
+                    "colour": "#16a34a",
+                },
+                {
+                    "label": "c2*T",
+                    "location": reject_threshold,
+                    "colour": "#dc2626",
+                },
+            ],
+            "points": [
+                {
+                    "label": "observed_failures",
+                    "location": [failed, 0.15],
+                    "colour": "#2563eb",
+                    "verdict": result["verdict"],
+                },
+            ],
+            "axes": {
+                "x": {
+                    "label": "Failed verification checks",
+                    "range": [0, total],
+                },
+                "y": {
+                    "label": "Decision marker height",
+                    "range": [0, 1],
+                },
+            },
+        }
+
+    def _generate_verification_decision_image(
+        self,
+        result: Dict[str, Any],
+        output_path: str = "verification_decision.png",
+    ) -> str:
+        visualization = self._decision_visualization_payload(result)
+        total = int(result["total_verifications"])
+        authentic_threshold = float(result["authentic_threshold"])
+        reject_threshold = float(result["reject_threshold"])
+        failed = int(result["failed_verifications"])
+        zones = visualization["zones"]
+        observed_point = visualization["points"][0]
+
+        fig, ax = plt.subplots(figsize=(8, 4.5))
+        fig.patch.set_facecolor('#ffffff')
+        ax.set_facecolor('#ffffff')
+
+        # Draw decision zones
+        ax.axvspan(-0.5, authentic_threshold, color=zones["green"]["colour"], alpha=0.9, label=zones["green"]["label"])
+        ax.axvspan(authentic_threshold, reject_threshold, color=zones["yellow"]["colour"], alpha=0.9, label=zones["yellow"]["label"])
+        ax.axvspan(reject_threshold, total + 0.5, color=zones["red"]["colour"], alpha=0.9, label=zones["red"]["label"])
+
+        # Draw threshold lines
+        ax.axvline(authentic_threshold, color=visualization["thresholds"][0]["colour"], linestyle="--", linewidth=1.5, alpha=0.8)
+        ax.axvline(reject_threshold, color=visualization["thresholds"][1]["colour"], linestyle="--", linewidth=1.5, alpha=0.8)
+
+        # Draw observed failures marker as a glowing pin
+        ax.vlines(failed, 0, 0.55, color='#93c5fd', linewidth=6, alpha=0.4, zorder=3)
+        ax.vlines(failed, 0, 0.55, color=observed_point["colour"], linewidth=2.5, zorder=4)
+        ax.scatter(failed, 0.55, color='#93c5fd', s=180, alpha=0.4, zorder=4)
+        ax.scatter(failed, 0.55, color=observed_point["colour"], s=90, zorder=5, edgecolor='#ffffff', linewidth=1.5)
+
+        # Add tooltip-like annotation for observed failures
+        ax.annotate(
+            f"{result['verdict']}\n({failed} failures)",
+            xy=(failed, 0.55),
+            xytext=(0, 15),
+            textcoords="offset points",
+            ha='center',
+            va='bottom',
+            color='#ffffff',
+            fontweight='bold',
+            fontsize=9.5,
+            bbox=dict(boxstyle="round,pad=0.6", fc='#0f172a', ec=observed_point["colour"], lw=1.5),
+            zorder=6
+        )
+
+        ax.set_xlim(-0.5, total + 0.5)
+        ax.set_ylim(0, 1)
+        ax.set_yticks([])
+        
+        # Remove spines
+        for spine in ["top", "right", "left"]:
+            ax.spines[spine].set_visible(False)
+        ax.spines["bottom"].set_color("#cbd5e1")
+        ax.spines["bottom"].set_linewidth(1.5)
+
+        ax.tick_params(axis='x', colors='#475569', labelsize=9.5)
+        ax.set_xlabel("Failed verification checks", fontsize=10.5, fontweight="semibold", color="#334155", labelpad=12)
+        ax.set_title("Quantum Digital Signature Verification Decision", fontsize=13, fontweight="bold", color="#0f172a", pad=20)
+
+        # Threshold text labels using LaTeX mathtext
+        ax.text(
+            authentic_threshold - 0.25,
+            0.88,
+            r"$c_1 \cdot T = " + f"{authentic_threshold:.1f}$",
+            ha="right",
+            va="center",
+            color=visualization["thresholds"][0]["colour"],
+            fontweight="bold",
+            fontsize=10
+        )
+        ax.text(
+            reject_threshold + 0.25,
+            0.88,
+            r"$c_2 \cdot T = " + f"{reject_threshold:.1f}$",
+            ha="left",
+            va="center",
+            color=visualization["thresholds"][1]["colour"],
+            fontweight="bold",
+            fontsize=10
+        )
+
+        # Custom legend patches
+        import matplotlib.patches as mpatches
+        green_patch = mpatches.Patch(color=zones["green"]["colour"], alpha=0.9, label=zones["green"]["label"])
+        yellow_patch = mpatches.Patch(color=zones["yellow"]["colour"], alpha=0.9, label=zones["yellow"]["label"])
+        red_patch = mpatches.Patch(color=zones["red"]["colour"], alpha=0.9, label=zones["red"]["label"])
+        
+        ax.legend(
+            handles=[green_patch, yellow_patch, red_patch],
+            loc="upper center",
+            bbox_to_anchor=(0.5, -0.2),
+            ncol=3,
+            frameon=True,
+            facecolor='#ffffff',
+            edgecolor='#e2e8f0',
+            fontsize=9.5,
+            labelcolor='#475569'
+        )
+        fig.tight_layout()
+
+        destination = Path(output_path)
+        fig.savefig(destination, dpi=160, bbox_inches="tight")
+        plt.close(fig)
+        return str(destination)
+
     # ------------------------------------------------------------------ #
     # Single end-to-end entry point
     # ------------------------------------------------------------------ #
-    def run(self) -> Dict[str, Any]:
-        """Run the full honest QDS workflow end-to-end and return the verdict."""
+    def run(self) -> str:
+        """Run the full honest QDS workflow end-to-end and return JSON output."""
         self._reset_protocol_state()
         self._generate_private_keys()
         self._generate_public_keys()
         signature = self._generate_signature()
         result = self._verify_signature(signature)
+        result["decision_visualization"] = self._decision_visualization_payload(result)
+        result["generated_files"] = {
+            "verification_decision": self._generate_verification_decision_image(result),
+        }
+        self._last_result = result
         if self._verbose:
             self._summarize_results(result)
-        return result
+        return self._to_json(self._compact_verification_result(result))
 
-    def run_forgery_attempt(self) -> Dict[str, Any]:
+    def run_forgery_attempt(self) -> str:
         """Run the protocol but verify against a forged (random-key) signature.
 
         Demonstrates the REJECT_FORGED branch under honest channel conditions.
@@ -522,27 +728,27 @@ class QuantumDigitalSignatureWithChannelNoise:
         self._generate_public_keys()
         forged = self._forge_signature()
         result = self._verify_signature(forged)
+        result["decision_visualization"] = self._decision_visualization_payload(result)
+        result["generated_files"] = {
+            "verification_decision": self._generate_verification_decision_image(result),
+        }
+        self._last_result = result
         if self._verbose:
             self._summarize_results(result)
-        return result
+        return self._to_json(self._compact_verification_result(result))
 
     def _summarize_results(self, result: Optional[Dict[str, Any]] = None) -> None:
         data = self._last_result if result is None else result
         if data is None:
-            print("No protocol result is available yet.")
+            self._print_json({
+                "event": "result",
+                "error": "No protocol result is available yet.",
+            })
             return
-        print("Protocol summary")
-        print("-" * 48)
-        print(f"message_bits            : {data['message_bits']}")
-        print(f"noise                   : {data['noise_channel']} (p={data['noise_probability']})")
-        print(f"security_margin         : {data['security_margin']}")
-        print(f"total_verifications     : {data['total_verifications']}")
-        print(f"failed_verifications    : {data['failed_verifications']}")
-        print(f"failure_rate            : {data['failure_rate']:.4f}")
-        print(f"authentic_threshold     : {data['authentic_threshold']:.2f}")
-        print(f"reject_threshold        : {data['reject_threshold']:.2f}")
-        print(f"verdict                 : {data['verdict']}")
-        print()
+        self._print_json({
+            "event": "result",
+            "result": self._compact_verification_result(data),
+        })
 
     # ------------------------------------------------------------------ #
     # Optional diagnostics
@@ -572,8 +778,43 @@ class QuantumDigitalSignatureWithChannelNoise:
         return {
             "p_ancilla_zero": p_zero,
             "counts": counts,
-            "circuit": swap_circuit,
+            "circuit": {
+                "name": swap_circuit.name,
+                "num_qubits": swap_circuit.num_qubits,
+                "num_clbits": swap_circuit.num_clbits,
+                "depth": swap_circuit.depth(),
+                "operation_counts": dict(swap_circuit.count_ops()),
+            },
         }
+
+    def _compact_swap_test_result(self, result: Dict[str, Any], include_plot: bool) -> Dict[str, Any]:
+        compact = {
+            "bit_index": result["bit_index"],
+            "copy_index": result["copy_index"],
+            "bit_value": result["bit_value"],
+            "comparisons": {
+                label: {
+                    "p_ancilla_zero": comparison["p_ancilla_zero"],
+                }
+                for label, comparison in result["comparisons"].items()
+            },
+        }
+        if include_plot:
+            compact["plot"] = {
+                "type": "bar",
+                "title": "SWAP Test Public-Key State Comparisons",
+                "x_label": "comparison",
+                "y_label": "P(ancilla = 0)",
+                "y_range": [0.45, 1.02],
+                "series": [
+                    {
+                        "label": label,
+                        "value": data["p_ancilla_zero"],
+                    }
+                    for label, data in compact["comparisons"].items()
+                ],
+            }
+        return compact
 
     def run_swap_test_example(
         self,
@@ -581,7 +822,7 @@ class QuantumDigitalSignatureWithChannelNoise:
         copy_index: int = 0,
         bit_value: Optional[int] = None,
         make_plot: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> str:
         if not self._received_public_key_circuits:
             self._generate_public_keys()
 
@@ -604,31 +845,20 @@ class QuantumDigitalSignatureWithChannelNoise:
             "ideal_vs_complementary": self._swap_test(ideal, complementary_ideal),
         }
 
-        if make_plot:
-            labels = ["ideal\nvs ideal", "ideal\nvs received", "ideal\nvs complement"]
-            values = [comparisons[key]["p_ancilla_zero"] for key in comparisons]
-            fig, ax = plt.subplots(figsize=(7, 4))
-            ax.bar(labels, values, color=["#2e7d32", "#1565c0", "#8e24aa"])
-            ax.set_ylim(0.45, 1.02)
-            ax.set_ylabel("P(ancilla = 0)")
-            ax.set_title("SWAP Test Public-Key State Comparisons")
-            ax.grid(axis="y", alpha=0.3)
-            plt.tight_layout()
-            plt.show()
-
-        return {
+        detailed_payload = {
             "bit_index": bit_index,
             "copy_index": copy_index,
             "bit_value": selected_bit_value,
             "comparisons": comparisons,
         }
+        return self._to_json(self._compact_swap_test_result(detailed_payload, make_plot))
 
     def _plot_noise_sweep(
         self,
         p_values: Sequence[float],
         noise_channel: str = "depolarizing",
         figure_size: Tuple[float, float] = (7.5, 4.5),
-    ) -> List[Dict[str, Any]]:
+    ) -> str:
         if noise_channel not in self._ALLOWED_NOISE_CHANNELS:
             allowed = ", ".join(sorted(self._ALLOWED_NOISE_CHANNELS))
             raise ValueError(f"noise_channel must be one of: {allowed}.")
@@ -650,45 +880,70 @@ class QuantumDigitalSignatureWithChannelNoise:
                 verification_pass_threshold=self._verification_pass_threshold,
                 verbose=False,
             )
-            sweep_results.append(trial.run())
+            sweep_results.append(json.loads(trial.run()))
 
         probabilities = [item["noise_probability"] for item in sweep_results]
         failure_rates = [item["failure_rate"] for item in sweep_results]
 
-        fig, ax = plt.subplots(figsize=figure_size)
-        ax.plot(probabilities, failure_rates, marker="o", linewidth=2, color="#1565c0")
-        ax.axhline(self._c1, linestyle="--", color="#2e7d32", label=f"authentic threshold c1={self._c1}")
-        ax.axhline(self._c2, linestyle="--", color="#c62828", label=f"reject threshold c2={self._c2}")
-        ax.set_xlabel("Noise probability")
-        ax.set_ylabel("Failure rate")
-        ax.set_title(f"{noise_channel.replace('_', ' ').title()} Noise Sweep")
-        ax.set_ylim(-0.02, 1.02)
-        ax.grid(True, alpha=0.3)
-        ax.legend()
-        plt.tight_layout()
-        plt.show()
-
-        return sweep_results
+        return self._to_json({
+            "noise_channel": noise_channel,
+            "figure_size": list(figure_size),
+            "sweep_results": sweep_results,
+            "plot": {
+                "type": "line",
+                "title": f"{noise_channel.replace('_', ' ').title()} Noise Sweep",
+                "x_label": "Noise probability",
+                "y_label": "Failure rate",
+                "y_range": [-0.02, 1.02],
+                "series": [
+                    {
+                        "label": "failure_rate",
+                        "x": probabilities,
+                        "y": failure_rates,
+                        "color": "#1565c0",
+                    }
+                ],
+                "thresholds": [
+                    {
+                        "label": f"authentic threshold c1={self._c1}",
+                        "value": self._c1,
+                        "color": "#2e7d32",
+                    },
+                    {
+                        "label": f"reject threshold c2={self._c2}",
+                        "value": self._c2,
+                        "color": "#c62828",
+                    },
+                ],
+            },
+        })
 
 
 def _main() -> None:
     """Single entry point: run the full QDS protocol once and print the verdict."""
-    qds = QuantumDigitalSignatureWithChannelNoise(
-        message_bits="101100",
-        n_qubits=4,
-        L=25,
-        M=5,
-        c1=0.1,
-        c2=0.4,
-        shots=4096,
-        seed=42,
-        noise_channel="depolarizing",
-        noise_probability=0.05,
-        verbose=True,
-    )
-    qds.run()
+    try:
+        qds = QuantumDigitalSignatureWithChannelNoise(
+            message_bits="101100",
+            n_qubits=4,
+            L=25,
+            M=5,
+            c1=0.1,
+            c2=0.4,
+            shots=4096,
+            seed=42,
+            noise_channel="depolarizing",
+            noise_probability=0.05,
+            verbose=False,
+        )
+        print(qds.run())
+    except Exception as exc:
+        print(json.dumps({
+            "event": "error",
+            "error_type": exc.__class__.__name__,
+            "message": str(exc),
+        }, indent=2))
+        raise SystemExit(1) from None
 
 
 if __name__ == "__main__":
     _main()
-

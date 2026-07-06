@@ -198,8 +198,8 @@ protocol parameters, then call one of these public methods:
 - `run_swap_test_example()` for a SWAP-test comparison of public-key states.
 
 All other methods, constants, and stored state are implementation details and are
-private underscore-prefixed members. Use the dictionaries returned by the public
-methods instead of reading internal attributes.
+private underscore-prefixed members. Use the JSON returned by the public methods
+instead of reading internal attributes.
 
 ### Constructor parameters
 
@@ -235,38 +235,44 @@ qds = QuantumDigitalSignatureWithChannelNoise(
 | `noise_channel` | Channel applied during public-key transmission: `none`, `depolarizing`, `amplitude_damping`, `phase_damping`, `bit_flip`, or `phase_flip`. |
 | `noise_probability` | Channel strength in `[0.0, 1.0]`. Use `0.0` for a clean channel. |
 | `verification_pass_threshold` | Minimum all-zero probability required for a single verification check to pass. |
-| `verbose` | When `True`, prints configuration and run summaries. When `False`, only return dictionaries are produced. |
+| `verbose` | When `True`, prints JSON configuration/result events. When `False`, only the JSON return value is produced. |
 
 ### `run()`
 
 ```python
-result = qds.run()
+result_json = qds.run()
 ```
 
 Runs the honest protocol: reset state, generate private keys, build and transmit
 public-key states, reveal the correct private keys as the signature, verify the
-signature, and return a result dictionary. It takes no method parameters; all
+signature, and return a JSON string. It takes no method parameters; all
 inputs come from the constructor.
 
 Important result fields include `verdict`, `failed_verifications`,
-`failure_rate`, `total_verifications`, `per_bit_results`, and
-`raw_counts_summary`.
+`failure_rate`, `total_verifications`, `authentic_threshold`,
+`reject_threshold`, `security_margin`, `warnings`, `generated_files`, and
+`decision_visualization`.
+Each run also writes `verification_decision.png`, a compact image showing the
+accept, inconclusive, and reject zones for the observed failure count.
+The `decision_visualization` field is the JSON form of that image data: it
+contains green/yellow/red zone ranges and colours, threshold locations, axes,
+and the observed failure point location and colour.
 
 ### `run_forgery_attempt()`
 
 ```python
-forgery_result = qds.run_forgery_attempt()
+forgery_result_json = qds.run_forgery_attempt()
 ```
 
 Runs the same setup as `run()`, but verifies a forged signature made from random
-private-key guesses. It takes no method parameters and returns the same result
-dictionary shape as `run()`. Under clean default conditions the expected verdict
+private-key guesses. It takes no method parameters and returns the same JSON
+result shape as `run()`. Under clean default conditions the expected verdict
 is `REJECT_FORGED`.
 
 ### `run_swap_test_example(...)`
 
 ```python
-swap_result = qds.run_swap_test_example(
+swap_result_json = qds.run_swap_test_example(
     bit_index=0,
     copy_index=0,
     bit_value=None,
@@ -282,10 +288,10 @@ Runs three SWAP-test comparisons for one selected public-key state:
 | `bit_index` | Message-bit position to inspect. Valid range is `0 <= bit_index < len(message_bits)`. |
 | `copy_index` | Public-key copy number for that bit. Valid range is `0 <= copy_index < M`. |
 | `bit_value` | Which key state to compare, `0` or `1`. If `None`, the actual message bit at `bit_index` is used. |
-| `make_plot` | When `True`, displays a Matplotlib bar chart of the SWAP-test probabilities. |
+| `make_plot` | When `True`, includes JSON bar-chart data in the returned payload. It does not display a Matplotlib chart. |
 
-The returned dictionary includes the selected indices and a `comparisons` mapping.
-Each comparison contains `p_ancilla_zero`, raw `counts`, and the generated
-`QuantumCircuit`.
+The returned JSON includes the selected indices and a compact `comparisons`
+mapping. Each comparison contains only `p_ancilla_zero`; raw counts and circuit
+objects stay internal.
 
 
